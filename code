@@ -1,0 +1,48 @@
+import os
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ModelCheckpoint
+
+# Parameters
+img_size = 128
+batch_size = 32
+epochs = 10
+data_dir = 'data/'
+
+# Data Augmentation & Loading
+datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
+
+train_gen = datagen.flow_from_directory(
+    data_dir,
+    target_size=(img_size, img_size),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='training'
+)
+
+val_gen = datagen.flow_from_directory(
+    data_dir,
+    target_size=(img_size, img_size),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='validation'
+)
+
+# Build Model
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(img_size, img_size, 3))
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(128, activation='relu')(x)
+output = Dense(train_gen.num_classes, activation='softmax')(x)
+
+model = Model(inputs=base_model.input, outputs=output)
+model.compile(optimizer=Adam(0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train
+checkpoint = ModelCheckpoint('model.h5', monitor='val_accuracy', save_best_only=True, verbose=1)
+model.fit(train_gen, validation_data=val_gen, epochs=epochs, callbacks=[checkpoint])
