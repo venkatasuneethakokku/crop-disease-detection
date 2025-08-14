@@ -1,6 +1,16 @@
-import kagglehub
+# Example preprocessing
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-# Download latest version
-path = kagglehub.dataset_download("emmarex/plantdisease")
+datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2
+)
 
-print("Path to dataset files:", path)
+train_generator = datagen.flow_from_directory(
+    'data/',
+    target_size=(128, 128),
+    batch_size=32,
+    class_mode='categorical',
+    subset='training'
+)
+
